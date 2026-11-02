@@ -1,0 +1,6 @@
+backend = poetry run fastapi dev app/main.py
+server =  http://127.0.0.1:8000
+
+
+frontend = npm.cmd run dev
+server =  http://localhost:5173/
