@@ -20,6 +20,9 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
 
+    company_id: int = Field(gt=0)
+    role: UserRole = "interviewer"
+
 
 class UserUpdate(BaseModel):
     full_name: str | None = Field(default=None, min_length=2, max_length=150)
@@ -68,7 +71,9 @@ class UserResponse(BaseModel):
     full_name: str
     email: EmailStr
     is_active: bool
+    global_role: Literal["user", "super_admin"]
     created_at: datetime
+
     company_assignments: list[CompanyAssignmentResponse] = Field(
         default_factory=list
     )

@@ -1,0 +1,13 @@
+Create the Applicant database model.
+
+Create Alembic migration.
+
+Configure Supabase Storage and private bucket.
+
+Build resume upload API.
+
+Build applicant submission API.
+
+Build HR preview/download APIs.
+
+Integrate everything into the React Applicants page.

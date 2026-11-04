@@ -1,0 +1,4 @@
+  //Super Admin
+  "full_name": "Ayush",
+  "email": "ayush@gmail.com",
+  "password": "Ayush123"
