@@ -221,71 +221,81 @@ function UsersPage({ currentUser }) {
   }
 
 
-    async function handleRoleChange(userId, newRole) {
+  async function handleRoleChange(userId, newRole) {
     if (!canManageSelectedCompany) {
-        setError("You do not have permission to change user roles.");
-        await refreshUsers();
-        return;
+      setError("You do not have permission to change user roles.");
+      await refreshUsers();
+      return;
     }
 
     const user = users.find((item) => item.id === userId);
     if (!user) return;
 
+    // A company admin or HR user cannot change a Super Admin's company role.
+    if (user.global_role === "super_admin") {
+      setError("The company role of a Super Admin cannot be modified here.");
+      await refreshUsers();
+      return;
+    }
+
     const assignment = (user.company_assignments || []).find(
-        (item) =>
-        String(item.company_id) === String(selectedCompanyId)
+      (item) => String(item.company_id) === String(selectedCompanyId)
     );
 
     const oldRole = assignment?.role;
-
     if (!oldRole || oldRole === newRole) return;
 
     const confirmed = window.confirm(
-        `Change ${user.full_name}'s role?\n\n` +
+      `Change ${user.full_name}'s role?\n\n` +
         `Current role: ${formatRole(oldRole)}\n` +
         `New role: ${formatRole(newRole)}\n\n` +
         "Are you sure you want to continue?"
     );
 
     if (!confirmed) {
-        await refreshUsers();
-        return;
+      await refreshUsers();
+      return;
     }
 
     setError("");
     setMessage("");
 
     try {
-        await updateCompanyUserRole(
+      await updateCompanyUserRole(
         userId,
         Number(selectedCompanyId),
         newRole
-        );
+      );
 
-        setMessage(
+      setMessage(
         `${user.full_name}'s role changed to ${formatRole(newRole)}.`
-        );
+      );
 
-        await refreshUsers();
+      await refreshUsers();
     } catch (err) {
-        setError(err.message || "Failed to update user role.");
-        await refreshUsers();
+      setError(err.message || "Failed to update user role.");
+      await refreshUsers();
     }
-    }
+  }
 
 
-
-    async function handleRemoveUser(userId) {
+  async function handleRemoveUser(userId) {
     if (!canManageSelectedCompany) {
-        setError("You do not have permission to remove users.");
-        return;
+      setError("You do not have permission to remove users.");
+      return;
     }
 
     const user = users.find((item) => item.id === userId);
     if (!user) return;
 
+    // Company admins cannot remove a Super Admin from a company.
+    if (user.global_role === "super_admin" && !isSuperAdmin) {
+      setError("You cannot remove a Super Admin from this company.");
+      return;
+    }
+
     const confirmed = window.confirm(
-        `Remove ${user.full_name} from this company?\n\n` +
+      `Remove ${user.full_name} from this company?\n\n` +
         "Their company access will be deactivated, but their previous " +
         "role will be preserved so you can restore them later.\n\n" +
         "Do you want to continue?"
@@ -297,21 +307,18 @@ function UsersPage({ currentUser }) {
     setMessage("");
 
     try {
-        await removeUserFromCompany(
+      await removeUserFromCompany(
         userId,
         Number(selectedCompanyId)
-        );
+      );
 
-        setMessage(`${user.full_name} was removed from the company.`);
+      setMessage(`${user.full_name} was removed from the company.`);
 
-        await Promise.all([
-        refreshUsers(),
-        refreshRemovedUsers(),
-        ]);
+      await Promise.all([refreshUsers(), refreshRemovedUsers()]);
     } catch (err) {
-        setError(err.message || "Failed to remove user.");
+      setError(err.message || "Failed to remove user.");
     }
-    }
+  }
 
 
     async function handleRestoreUser(userId) {
@@ -325,8 +332,13 @@ function UsersPage({ currentUser }) {
     );
 
     if (!user) {
-        setError("User not found in the removed users list.");
-        return;
+      setError("User not found in the removed users list.");
+      return;
+    }
+
+    if (user.global_role === "super_admin" && !isSuperAdmin) {
+      setError("You cannot restore or manage a Super Admin's company access.");
+      return;
     }
 
     const assignment = (user.company_assignments || []).find(
@@ -541,7 +553,11 @@ function UsersPage({ currentUser }) {
 
                       <td>
                         {assignment ? (
-                          canManageSelectedCompany ? (
+                          user.global_role === "super_admin" ? (
+                            <span className="role-badge super-admin">
+                              Super Admin
+                            </span>
+                          ) : canManageSelectedCompany ? (
                             <select
                               value={assignment.role}
                               onChange={(event) =>
@@ -571,14 +587,16 @@ function UsersPage({ currentUser }) {
                       </td>
 
                       <td>
-                        {assignment && canManageSelectedCompany && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveUser(user.id)}
-                          >
-                            Remove
-                          </button>
-                        )}
+                        {assignment &&
+                          canManageSelectedCompany &&
+                          (user.global_role !== "super_admin" || isSuperAdmin) && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveUser(user.id)}
+                            >
+                              Remove
+                            </button>
+                          )}
                       </td>
                     </tr>
                   );

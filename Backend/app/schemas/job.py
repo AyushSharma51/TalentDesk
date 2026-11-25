@@ -78,3 +78,10 @@ class JobResponse(BaseModel):
 
     status: JobStatus
     created_at: datetime
+
+class JobListResponse(BaseModel):
+    items: list[JobResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int

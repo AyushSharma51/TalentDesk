@@ -334,6 +334,7 @@ def remove_company_assignment(
 # Change a user's role in a company
 # --------------------------------------------------
 
+
 @router.patch(
     "/{user_id}/companies/{company_id}",
     response_model=CompanyAssignmentResponse,
@@ -345,6 +346,24 @@ def update_company_role(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    # Only super admins can modify another super admin's company role.
+    target_user = user_service.get_user(db, user_id)
+
+    if target_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    if (
+        target_user.global_role == "super_admin"
+        and current_user.global_role != "super_admin"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You cannot modify the company role of a Super Admin.",
+        )
+
     ensure_can_manage_company(
         db=db,
         current_user=current_user,
@@ -368,6 +387,7 @@ def update_company_role(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(exc),
         ) from exc
+
 
 
 # --------------------------------------------------

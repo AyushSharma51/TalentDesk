@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   getJobs,
@@ -11,8 +11,22 @@ import {
 } from "../api/client";
 
 function Jobs({ currentUser }) {
+  console.log("JOBS COMPONENT RENDERED");
   const [jobs, setJobs] = useState([]);
   const [companies, setCompanies] = useState([]);
+  const [totalJobs, setTotalJobs] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [filters, setFilters] = useState({
+    search: "",
+    status: "",
+    employment_type: "",
+    work_mode: "",
+    department: "",
+  });
+  const latestFetchId = useRef(0);
+  const [companyFilter, setCompanyFilter] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -62,17 +76,50 @@ function Jobs({ currentUser }) {
   // FETCH JOBS
   // =====================================
 
+
   async function fetchJobs() {
+    const requestId = ++latestFetchId.current;
+
     try {
       setLoading(true);
       setError("");
 
-      const data = await getJobs();
-      setJobs(Array.isArray(data) ? data : []);
+      const data = await getJobs({
+        companyId: companyFilter || null,
+        page,
+        pageSize,
+        search: filters.search.trim(),
+        status: filters.status,
+        employmentType: filters.employment_type,
+        workMode: filters.work_mode,
+        department: filters.department.trim(),
+      });
+
+      // Ignore responses from older requests.
+      if (requestId !== latestFetchId.current) {
+        return;
+      }
+
+      const items = Array.isArray(data?.items) ? data.items : [];
+
+      console.log("LATEST JOBS API RESPONSE:", data);
+      console.log("JOBS RECEIVED:", items);
+
+      setJobs(items);
+      setTotalJobs(data?.total ?? 0);
+      setTotalPages(data?.total_pages ?? 0);
+
     } catch (err) {
-      setError(err.message || "Failed to fetch jobs.");
+      if (requestId === latestFetchId.current) {
+        setError(err.message || "Failed to fetch jobs.");
+        setJobs([]);
+        setTotalJobs(0);
+        setTotalPages(0);
+      }
     } finally {
-      setLoading(false);
+      if (requestId === latestFetchId.current) {
+        setLoading(false);
+      }
     }
   }
 
@@ -108,9 +155,50 @@ function Jobs({ currentUser }) {
     }
   }, [currentUser, isSuperAdmin]);
 
+  // Refetch whenever pagination or filters change. Search is debounced to
+  // avoid sending a request for every keystroke.
   useEffect(() => {
-    fetchJobs();
-  }, []);
+    if (!currentUser) {
+      setJobs([]);
+      setTotalJobs(0);
+      setTotalPages(0);
+      setLoading(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      fetchJobs();
+    }, filters.search ? 350 : 0);
+
+    return () => {
+      clearTimeout(timeoutId);
+
+      // Invalidate any request that is still running.
+      latestFetchId.current += 1;
+    };
+  }, [currentUser, page, pageSize, filters, companyFilter]);
+
+  function handleFilterChange(event) {
+    const { name, value } = event.target;
+
+    setFilters((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+    setPage(1);
+  }
+
+  function clearFilters() {
+    setFilters({
+      search: "",
+      status: "",
+      employment_type: "",
+      work_mode: "",
+      department: "",
+    });
+    setCompanyFilter("");
+    setPage(1);
+  }
 
   // =====================================
   // FORM HANDLING
@@ -281,7 +369,11 @@ function Jobs({ currentUser }) {
       setError("");
 
       await deleteJob(job.id);
-      await fetchJobs();
+      if (jobs.length === 1 && page > 1) {
+        setPage((current) => current - 1);
+      } else {
+        await fetchJobs();
+      }
     } catch (err) {
       setError(err.message || "Failed to delete job.");
     }
@@ -335,25 +427,25 @@ function Jobs({ currentUser }) {
       <div className="jobs-stats">
         <div className="job-stat-card">
           <span>Total Jobs</span>
-          <h2>{jobs.length}</h2>
+          <h2>{totalJobs}</h2>
         </div>
 
         <div className="job-stat-card">
-          <span>Published</span>
+          <span>Published (this page)</span>
           <h2>
             {jobs.filter((job) => job.status === "published").length}
           </h2>
         </div>
 
         <div className="job-stat-card">
-          <span>Drafts</span>
+          <span>Drafts (this page)</span>
           <h2>
             {jobs.filter((job) => job.status === "draft").length}
           </h2>
         </div>
 
         <div className="job-stat-card">
-          <span>Closed</span>
+          <span>Closed (this page)</span>
           <h2>
             {jobs.filter((job) => job.status === "closed").length}
           </h2>
@@ -376,6 +468,109 @@ function Jobs({ currentUser }) {
           </button>
         </div>
 
+        {/* JOB FILTERS */}
+        <div className="jobs-filters">
+          <div className="jobs-filter-search">
+            <label htmlFor="jobs-search">Search jobs</label>
+            <input
+              id="jobs-search"
+              type="search"
+              name="search"
+              value={filters.search}
+              onChange={handleFilterChange}
+              placeholder="Search title, department, or location..."
+            />
+          </div>
+
+          <div className="jobs-filter-field">
+            <label htmlFor="jobs-status-filter">Status</label>
+            <select
+              id="jobs-status-filter"
+              name="status"
+              value={filters.status}
+              onChange={handleFilterChange}
+            >
+              <option value="">All statuses</option>
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+
+          <div className="jobs-filter-field">
+            <label htmlFor="jobs-employment-filter">Employment type</label>
+            <select
+              id="jobs-employment-filter"
+              name="employment_type"
+              value={filters.employment_type}
+              onChange={handleFilterChange}
+            >
+              <option value="">All types</option>
+              <option value="internship">Internship</option>
+              <option value="full_time">Full Time</option>
+              <option value="part_time">Part Time</option>
+              <option value="contract">Contract</option>
+              <option value="fellowship">Fellowship</option>
+            </select>
+          </div>
+
+          <div className="jobs-filter-field">
+            <label htmlFor="jobs-work-mode-filter">Work mode</label>
+            <select
+              id="jobs-work-mode-filter"
+              name="work_mode"
+              value={filters.work_mode}
+              onChange={handleFilterChange}
+            >
+              <option value="">All work modes</option>
+              <option value="on_site">On-site</option>
+              <option value="hybrid">Hybrid</option>
+              <option value="remote">Remote</option>
+            </select>
+          </div>
+
+          <div className="jobs-filter-field">
+            <label htmlFor="jobs-department-filter">Department</label>
+            <input
+              id="jobs-department-filter"
+              type="text"
+              name="department"
+              value={filters.department}
+              onChange={handleFilterChange}
+              placeholder="e.g. Engineering"
+            />
+          </div>
+
+          {isSuperAdmin && (
+            <div className="jobs-filter-field">
+              <label htmlFor="jobs-company-filter">Company</label>
+              <select
+                id="jobs-company-filter"
+                value={companyFilter}
+                onChange={(event) => {
+                  setCompanyFilter(event.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="">All companies</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="jobs-clear-filters-btn"
+            onClick={clearFilters}
+          >
+            Clear filters
+          </button>
+        </div>
+
         {error && (
           <p className="jobs-error">{error}</p>
         )}
@@ -385,7 +580,11 @@ function Jobs({ currentUser }) {
         ) : jobs.length === 0 ? (
           <div className="jobs-empty">
             <h3>No jobs found</h3>
-            <p>Create your first job opening to get started.</p>
+            <p>
+              {totalJobs === 0 && Object.values(filters).every((value) => !value) && !companyFilter
+                ? "Create your first job opening to get started."
+                : "Try changing or clearing your filters."}
+            </p>
           </div>
         ) : (
           <div className="jobs-table-scroll">
@@ -479,6 +678,55 @@ function Jobs({ currentUser }) {
             </table>
           </div>
         )}
+
+        {/* PAGINATION */}
+        <div className="jobs-pagination">
+          <div className="jobs-pagination-info">
+            {totalJobs === 0 ? (
+              "Showing 0 jobs"
+            ) : (
+              `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, totalJobs)} of ${totalJobs} jobs`
+            )}
+          </div>
+
+          <div className="jobs-pagination-controls">
+            <label htmlFor="jobs-page-size">Rows per page</label>
+            <select
+              id="jobs-page-size"
+              value={pageSize}
+              onChange={(event) => {
+                setPageSize(Number(event.target.value));
+                setPage(1);
+              }}
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
+
+            <button
+              type="button"
+              className="jobs-page-btn"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={page <= 1 || loading}
+            >
+              Previous
+            </button>
+
+            <span className="jobs-page-number">
+              Page {totalPages === 0 ? 0 : page} of {totalPages}
+            </span>
+
+            <button
+              type="button"
+              className="jobs-page-btn"
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              disabled={page >= totalPages || loading || totalPages === 0}
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* CREATE / EDIT MODAL */}

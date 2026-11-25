@@ -241,17 +241,39 @@ export async function restoreUserToCompany(userId, companyId) {
 // Get jobs
 // Super Admin: all companies
 // Admin / HR / Interviewer: their assigned companies
-export async function getJobs(companyId = null) {
+
+// Get jobs with filters and server-side pagination
+export async function getJobs({
+  companyId = null,
+  page = 1,
+  pageSize = 10,
+  search = "",
+  status = "",
+  employmentType = "",
+  workMode = "",
+  department = "",
+} = {}) {
   const params = new URLSearchParams();
 
-  if (companyId !== null) {
+  if (companyId !== null && companyId !== "") {
     params.set("company_id", String(companyId));
   }
 
-  const query = params.toString();
+  params.set("page", String(page));
+  params.set("page_size", String(pageSize));
+
+  if (search.trim()) params.set("search", search.trim());
+  if (status) params.set("status", status);
+  if (employmentType) {
+    params.set("employment_type", employmentType);
+  }
+  if (workMode) params.set("work_mode", workMode);
+  if (department.trim()) {
+    params.set("department", department.trim());
+  }
 
   const response = await fetch(
-    `${API_BASE_URL}/jobs/${query ? `?${query}` : ""}`,
+    `${API_BASE_URL}/jobs/?${params.toString()}`,
     {
       method: "GET",
       headers: getAuthHeaders(),

@@ -808,9 +808,7 @@ tbody tr:last-child td {
 /* ==============================
    Login page
 ============================== */
-.login-container {
-  background: var(--app-bg);
-}
+
 .login-form {
   background: var(--surface-bg);
   border-color: var(--border-color);
@@ -1293,7 +1291,7 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 /* ==============================
    Login page theme fixes
 ============================== */
-.login-container { background: var(--app-bg); }
+
 .login-form { background: var(--surface-bg); border-color: var(--border-color); }
 .login-form h1, .login-form label { color: var(--text-primary); }
 .login-form > p { color: var(--text-secondary); }
@@ -1354,16 +1352,6 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
   border-color: var(--border-color);
 }
 
-/* Login page layout fix */
-.login-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  box-sizing: border-box;
-  background: var(--app-bg);
-}
 /* ==============================
    Login page layout fix
 ============================== */
@@ -1375,7 +1363,22 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
   justify-content: center;
   padding: 24px;
   box-sizing: border-box;
-  background: var(--app-bg);
+  
+}
+/* TalentDesk Login Background */
+/* TalentDesk Login Background Image */
+.login-container {
+  background-image:
+    linear-gradient(
+      rgba(48, 56, 65, 0.18),
+      rgba(48, 56, 65, 0.18)
+    ),
+    url("./src/assets/login-background.jpg");
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 .login-form {
@@ -3443,3 +3446,182 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
   }
 }
 
+
+.role-badge.super-admin {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 5px;
+  background: #303841;
+  color: #EFE8DD;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+
+/* =====================================
+   JOB FILTERS
+===================================== */
+
+.jobs-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) repeat(4, minmax(135px, 1fr));
+  gap: 14px;
+  align-items: end;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border-color, #d8d2c9);
+  background: var(--card-bg, #fff);
+}
+
+.jobs-filter-search,
+.jobs-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.jobs-filter-search label,
+.jobs-filter-field label,
+.jobs-pagination-controls label {
+  color: var(--text-secondary, #667085);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.jobs-filter-search input,
+.jobs-filter-field input,
+.jobs-filter-field select,
+.jobs-pagination-controls select {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 11px;
+  border: 1px solid var(--border-color, #d8d2c9);
+  border-radius: 6px;
+  background: var(--card-bg, #fff);
+  color: var(--text-primary, #303841);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.jobs-filter-search input:focus,
+.jobs-filter-field input:focus,
+.jobs-filter-field select:focus,
+.jobs-pagination-controls select:focus {
+  border-color: #76ABAE;
+  box-shadow: 0 0 0 3px rgba(118, 171, 174, 0.16);
+}
+
+/* Clear filters and pagination buttons */
+
+.jobs-clear-filters-btn,
+.jobs-page-btn {
+  min-height: 40px;
+  padding: 0 13px;
+  border: 1px solid var(--border-color, #d8d2c9);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary, #303841);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.jobs-clear-filters-btn:hover,
+.jobs-page-btn:hover:not(:disabled) {
+  border-color: #76ABAE;
+  background: rgba(118, 171, 174, 0.1);
+}
+
+/* =====================================
+   JOB PAGINATION
+===================================== */
+
+.jobs-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color, #d8d2c9);
+  color: var(--text-secondary, #667085);
+  font-size: 13px;
+}
+
+.jobs-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.jobs-pagination-controls select {
+  width: 72px;
+  height: 36px;
+}
+
+.jobs-page-btn {
+  min-height: 36px;
+}
+
+.jobs-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.jobs-page-number {
+  min-width: 90px;
+  text-align: center;
+  color: var(--text-primary, #303841);
+  font-weight: 600;
+}
+
+/* =====================================
+   RESPONSIVE
+===================================== */
+
+@media (max-width: 1100px) {
+  .jobs-filters {
+    grid-template-columns: repeat(3, minmax(140px, 1fr));
+  }
+
+  .jobs-filter-search {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 700px) {
+  .jobs-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 15px;
+  }
+
+  .jobs-filter-search {
+    grid-column: 1 / -1;
+  }
+
+  .jobs-clear-filters-btn {
+    width: 100%;
+  }
+
+  .jobs-pagination {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 15px;
+  }
+
+  .jobs-pagination-controls {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 420px) {
+  .jobs-filters {
+    grid-template-columns: 1fr;
+  }
+}

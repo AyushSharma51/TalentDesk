@@ -1,11 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends,Query, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user
 from app.database import get_db
 from app.models import Job, User, UserCompany
-from app.schemas.job import JobCreate, JobUpdate, JobResponse
+from app.schemas.job import (
+    JobCreate,
+    JobUpdate,
+    JobResponse,
+    JobListResponse,
+)
 from app.services import job_service
 
 
@@ -97,46 +102,66 @@ def create_job(
 # List Jobs
 # --------------------------------------------------
 
-@router.get("/", response_model=list[JobResponse])
+
+# --------------------------------------------------
+# List Jobs - Filtering and Pagination
+# --------------------------------------------------
+
+@router.get("/", response_model=JobListResponse)
 def list_jobs(
     company_id: int | None = None,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+    search: str | None = None,
+    job_status: str | None = Query(default=None, alias="status"),
+    employment_type: str | None = None,
+    work_mode: str | None = None,
+    department: str | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # Super Admin can view all companies' jobs.
+    # Super Admin can view jobs across all companies.
     if current_user.global_role == "super_admin":
-        if company_id is not None:
-            return job_service.get_jobs_by_company(db, company_id)
+        company_ids = [company_id] if company_id is not None else None
 
-        statement = select(Job).order_by(Job.created_at.desc())
-        return list(db.scalars(statement).all())
-
-    # Other users can only view jobs from active assignments.
-    assignments = db.scalars(
-        select(UserCompany).where(
-            UserCompany.user_id == current_user.id,
-            UserCompany.is_active.is_(True),
-        )
-    ).all()
-
-    company_ids = [assignment.company_id for assignment in assignments]
-
-    if company_id is not None:
-        if company_id not in company_ids:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have access to this company's jobs.",
+    else:
+        # Get only active company assignments.
+        assignments = db.scalars(
+            select(UserCompany).where(
+                UserCompany.user_id == current_user.id,
+                UserCompany.is_active.is_(True),
             )
+        ).all()
 
-        return job_service.get_jobs_by_company(db, company_id)
+        assigned_company_ids = [
+            assignment.company_id
+            for assignment in assignments
+        ]
 
-    statement = (
-        select(Job)
-        .where(Job.company_id.in_(company_ids))
-        .order_by(Job.created_at.desc())
+        # Validate requested company access.
+        if company_id is not None:
+            if company_id not in assigned_company_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You don't have access to this company's jobs.",
+                )
+
+            company_ids = [company_id]
+        else:
+            company_ids = assigned_company_ids
+
+    return job_service.list_jobs(
+        db=db,
+        company_ids=company_ids,
+        page=page,
+        page_size=page_size,
+        search=search,
+        status=job_status,
+        employment_type=employment_type,
+        work_mode=work_mode,
+        department=department,
     )
 
-    return list(db.scalars(statement).all())
 
 
 # --------------------------------------------------

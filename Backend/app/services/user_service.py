@@ -242,12 +242,23 @@ def assign_company(
     )
 
 
+
 def update_company_role(
     db: Session,
     user_id: int,
     company_id: int,
     assignment_data: CompanyAssignmentUpdate,
 ) -> UserCompany:
+    user = db.get(User, user_id)
+
+    if user is None:
+        raise LookupError("User not found")
+
+    if user.global_role == "super_admin":
+        raise ValueError(
+            "The company role of a Super Admin cannot be modified."
+        )
+
     assignment = db.scalar(
         select(UserCompany)
         .options(selectinload(UserCompany.company))
@@ -261,6 +272,7 @@ def update_company_role(
         raise LookupError("Company assignment not found")
 
     assignment.role = assignment_data.role
+
     db.commit()
 
     return db.scalar(
@@ -271,6 +283,7 @@ def update_company_role(
             UserCompany.company_id == company_id,
         )
     )
+
 
 
 
