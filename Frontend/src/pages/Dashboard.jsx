@@ -1,208 +1,408 @@
 
-import StatCard from "../components/ui/StatCard";
+import { useEffect, useMemo, useState } from "react";
+import {
+  BriefcaseBusiness,
+  Briefcase,
+  Users,
+  CalendarDays,
+} from "lucide-react";
 
-function Dashboard() {
+import { getDashboard } from "../api/client";
+
+
+const STATUS_COLORS = {
+  applied: "#64748b",
+  screening: "#8b5cf6",
+  shortlisted: "#0d9488",
+  interview: "#2563eb",
+  offered: "#d97706",
+  hired: "#16a34a",
+  rejected: "#dc2626",
+};
+
+function formatDate(dateString) {
+  if (!dateString) return "—";
+
+  return new Date(dateString).toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function Dashboard({ currentUser }) {
+  const isSuperAdmin = currentUser?.global_role === "super_admin";
+
+  const companyAssignments = useMemo(() => {
+    return (currentUser?.company_assignments || []).filter(
+      (assignment) =>
+        assignment.is_active !== false &&
+        ["admin", "hr"].includes(assignment.role)
+    );
+  }, [currentUser]);
+
+  const [selectedCompany, setSelectedCompany] = useState(
+    isSuperAdmin ? "" : String(companyAssignments[0]?.company_id || "")
+  );
+
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const companyId = isSuperAdmin
+    ? selectedCompany
+      ? Number(selectedCompany)
+      : null
+    : Number(selectedCompany);
+
+  useEffect(() => {
+    if (!isSuperAdmin && !companyId) {
+      setLoading(false);
+      setError("No company management access found for your account.");
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadDashboard() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const data = await getDashboard(companyId);
+
+        if (isMounted) {
+          setDashboard(data);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err.message || "Unable to load dashboard.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDashboard();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [companyId, isSuperAdmin]);
+
+  const overview = dashboard?.overview;
+
+  const stats = [
+    {
+      label: "Total Jobs",
+      value: overview?.total_jobs ?? 0,
+      icon: BriefcaseBusiness,
+    },
+    {
+      label: "Active Jobs",
+      value: overview?.active_jobs ?? 0,
+      icon: Briefcase,
+    },
+    {
+      label: "Total Applicants",
+      value: overview?.total_applicants ?? 0,
+      icon: Users,
+    },
+    {
+      label: "Total Interviews",
+      value: overview?.total_interviews ?? 0,
+      icon: CalendarDays,
+    },
+  ];
+
+  const applicantStatuses = dashboard?.applicants_by_status || [];
+
+  const totalApplicants = applicantStatuses.reduce(
+    (total, item) => total + item.count,
+    0
+  );
+
   return (
-    <main className="dashboard">
-      <div className="page-heading">
+    <div className="dashboard-page">
+      <div className="dashboard-header">
         <div>
-          <p className="eyebrow">OVERVIEW</p>
           <h1>Dashboard</h1>
-          <p className="page-description">
-            Here's what's happening across your recruitment workspace.
-          </p>
+          <p>Overview of your recruitment activities.</p>
         </div>
 
-        <button className="primary-button">+ Add job</button>
+        {isSuperAdmin && (
+          <div className="dashboard-company-filter">
+            <label htmlFor="dashboardCompany">Company</label>
+
+            <select
+              id="dashboardCompany"
+              value={selectedCompany}
+              onChange={(event) => setSelectedCompany(event.target.value)}
+            >
+              <option value="">All Companies</option>
+
+              {(currentUser?.company_assignments || []).map((company) => (
+                <option
+                  key={company.company_id}
+                  value={company.company_id}
+                >
+                  {company.company_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {!isSuperAdmin && companyAssignments.length > 1 && (
+          <div className="dashboard-company-filter">
+            <label htmlFor="dashboardCompany">Company</label>
+
+            <select
+              id="dashboardCompany"
+              value={selectedCompany}
+              onChange={(event) => setSelectedCompany(event.target.value)}
+            >
+              {companyAssignments.map((company) => (
+                <option
+                  key={company.company_id}
+                  value={company.company_id}
+                >
+                  {company.company_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
-      <section className="stats-grid">
-        <StatCard
-          label="Total applicants"
-          value="1,284"
-          note="Across all companies"
-          color="blue"
-        />
-        <StatCard
-          label="Active jobs"
-          value="24"
-          note="Currently accepting applications"
-          color="green"
-        />
-        <StatCard
-          label="Interviews scheduled"
-          value="38"
-          note="Upcoming interviews"
-          color="purple"
-        />
-        <StatCard
-          label="Pending review"
-          value="126"
-          note="Applicants awaiting review"
-          color="orange"
-        />
-      </section>
+      {loading && (
+        <div className="dashboard-message">Loading dashboard...</div>
+      )}
 
-      <section className="content-grid">
-        <article className="panel activity-panel">
-          <div className="panel-heading">
-            <div>
-              <h3>Recruitment activity</h3>
-              <p>Applicant pipeline overview</p>
-            </div>
-            <button className="secondary-button">This month ▾</button>
-          </div>
+      {!loading && error && (
+        <div className="dashboard-error">{error}</div>
+      )}
 
-          <div className="chart-placeholder">
-            <div className="chart-y-labels">
-              <span>150</span>
-              <span>100</span>
-              <span>50</span>
-              <span>0</span>
-            </div>
+      {!loading && !error && dashboard && (
+        <>
+          <section className="dashboard-stats">
+            {stats.map((stat) => {
+              const Icon = stat.icon;
 
-            <div className="chart-area">
-              {[42, 62, 48, 78, 56, 88, 66, 96, 72, 84, 60, 76].map(
-                (height, index) => (
-                  <div className="chart-column" key={index}>
-                    <div style={{ height: `${height}%` }} />
+              return (
+                <div className="dashboard-stat-card" key={stat.label}>
+                  <div className="dashboard-stat-icon">
+                    <Icon size={20} strokeWidth={1.8} />
                   </div>
-                )
+
+                  <div>
+                    <p>{stat.label}</p>
+                    <h2>{stat.value}</h2>
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+
+          <section className="dashboard-main-grid">
+            <div className="dashboard-card">
+              <div className="dashboard-card-header">
+                <div>
+                  <h3>Applicants by Status</h3>
+                  <p>Distribution of applicants across stages</p>
+                </div>
+
+                <span className="dashboard-total">
+                  {totalApplicants} Total
+                </span>
+              </div>
+
+              {applicantStatuses.length === 0 ? (
+                <div className="dashboard-empty">
+                  No applicant data available.
+                </div>
+              ) : (
+                <div className="applicant-status-list">
+                  {applicantStatuses.map((item) => {
+                    const percentage = totalApplicants
+                      ? (item.count / totalApplicants) * 100
+                      : 0;
+
+                    return (
+                      <div
+                        className="applicant-status-item"
+                        key={item.status}
+                      >
+                        <div className="applicant-status-info">
+                          <span className="status-label">
+                            <span
+                              className="status-dot"
+                              style={{
+                                backgroundColor:
+                                  STATUS_COLORS[item.status] || "#64748b",
+                              }}
+                            />
+                            {item.status}
+                          </span>
+
+                          <strong>{item.count}</strong>
+                        </div>
+
+                        <div className="status-progress">
+                          <div
+                            className="status-progress-fill"
+                            style={{
+                              width: `${percentage}%`,
+                              backgroundColor:
+                                STATUS_COLORS[item.status] || "#64748b",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
-          </div>
 
-          <div className="chart-labels">
-            <span>Jan</span>
-            <span>Feb</span>
-            <span>Mar</span>
-            <span>Apr</span>
-            <span>May</span>
-            <span>Jun</span>
-          </div>
-        </article>
-
-        <article className="panel pipeline-panel">
-          <div className="panel-heading">
-            <div>
-              <h3>Applicant pipeline</h3>
-              <p>Current recruitment stages</p>
-            </div>
-            <button className="more-button">···</button>
-          </div>
-
-          {[
-            ["New", 126, "blue"],
-            ["Shortlisted", 64, "purple"],
-            ["Interview scheduled", 38, "orange"],
-            ["Offers", 12, "green"],
-          ].map(([label, count, color]) => (
-            <div className="pipeline-row" key={label}>
-              <div className="pipeline-label">
-                <span className={`pipeline-dot ${color}`} />
-                <span>{label}</span>
-                <strong>{count}</strong>
+            <div className="dashboard-card">
+              <div className="dashboard-card-header">
+                <div>
+                  <h3>Interview Overview</h3>
+                  <p>Current interview status</p>
+                </div>
               </div>
 
-              <div className="progress-track">
-                <div
-                  className={`progress-fill ${color}`}
-                  style={{ width: `${(count / 126) * 100}%` }}
-                />
+              <div className="interview-overview">
+                <div className="interview-overview-item">
+                  <span className="interview-indicator scheduled" />
+                  <div>
+                    <p>Scheduled</p>
+                    <strong>{overview.scheduled_interviews}</strong>
+                  </div>
+                </div>
+
+                <div className="interview-overview-item">
+                  <span className="interview-indicator completed" />
+                  <div>
+                    <p>Completed</p>
+                    <strong>{overview.completed_interviews}</strong>
+                  </div>
+                </div>
+
+                <div className="interview-overview-item">
+                  <span className="interview-indicator cancelled" />
+                  <div>
+                    <p>Cancelled</p>
+                    <strong>{overview.cancelled_interviews}</strong>
+                  </div>
+                </div>
               </div>
             </div>
-          ))}
-        </article>
-      </section>
+          </section>
 
-      <section className="panel applicants-panel">
-        <div className="panel-heading">
-          <div>
-            <h3>Recent applicants</h3>
-            <p>Latest applications across your companies</p>
-          </div>
-          <button className="secondary-button">View all →</button>
-        </div>
+          <section className="dashboard-card dashboard-table-card">
+            <div className="dashboard-card-header">
+              <div>
+                <h3>Recent Applicants</h3>
+                <p>Latest candidates who applied</p>
+              </div>
+            </div>
 
-        <div className="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>APPLICANT</th>
-                <th>COMPANY</th>
-                <th>POSITION</th>
-                <th>STATUS</th>
-                <th>APPLIED</th>
-              </tr>
-            </thead>
+            {dashboard.recent_applicants.length === 0 ? (
+              <div className="dashboard-empty">
+                No applicants found.
+              </div>
+            ) : (
+              <div className="dashboard-table-wrapper">
+                <table className="dashboard-table">
+                  <thead>
+                    <tr>
+                      <th>Applicant</th>
+                      <th>Job</th>
+                      <th>Status</th>
+                      <th>Applied At</th>
+                    </tr>
+                  </thead>
 
-            <tbody>
-              <tr>
-                <td>
-                  <div className="applicant-cell">
-                    <div className="person-avatar avatar-blue">RK</div>
-                    <div>
-                      <strong>Rahul Kumar</strong>
-                      <small>rahul@example.com</small>
-                    </div>
-                  </div>
-                </td>
-                <td>NBMC</td>
-                <td>Backend Engineer</td>
-                <td>
-                  <span className="status-badge status-new">New</span>
-                </td>
-                <td>Today</td>
-              </tr>
+                  <tbody>
+                    {dashboard.recent_applicants.map((applicant) => (
+                      <tr key={applicant.id}>
+                        <td>
+                          <div className="dashboard-applicant-name">
+                            {applicant.full_name}
+                          </div>
+                          <div className="dashboard-applicant-email">
+                            {applicant.email}
+                          </div>
+                        </td>
 
-              <tr>
-                <td>
-                  <div className="applicant-cell">
-                    <div className="person-avatar avatar-purple">PS</div>
-                    <div>
-                      <strong>Priya Sharma</strong>
-                      <small>priya@example.com</small>
-                    </div>
-                  </div>
-                </td>
-                <td>Sofsure</td>
-                <td>Data Analyst</td>
-                <td>
-                  <span className="status-badge status-shortlisted">
-                    Shortlisted
-                  </span>
-                </td>
-                <td>Yesterday</td>
-              </tr>
+                        <td>{applicant.job_title}</td>
 
-              <tr>
-                <td>
-                  <div className="applicant-cell">
-                    <div className="person-avatar avatar-orange">AM</div>
-                    <div>
-                      <strong>Arjun Mehta</strong>
-                      <small>arjun@example.com</small>
-                    </div>
-                  </div>
-                </td>
-                <td>NBMC</td>
-                <td>Python Developer</td>
-                <td>
-                  <span className="status-badge status-interview">
-                    Interview
-                  </span>
-                </td>
-                <td>28 Oct 2026</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+                        <td>
+                          <span
+                            className={`dashboard-status-badge ${applicant.status}`}
+                          >
+                            {applicant.status}
+                          </span>
+                        </td>
 
-      <p className="dashboard-footer">
-        TalentDesk · Multi-company HR workspace
-      </p>
-    </main>
+                        <td>{formatDate(applicant.applied_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section className="dashboard-card dashboard-table-card">
+            <div className="dashboard-card-header">
+              <div>
+                <h3>Upcoming Interviews</h3>
+                <p>Your next scheduled interviews</p>
+              </div>
+            </div>
+
+            {dashboard.upcoming_interviews.length === 0 ? (
+              <div className="dashboard-empty">
+                No upcoming interviews.
+              </div>
+            ) : (
+              <div className="dashboard-table-wrapper">
+                <table className="dashboard-table">
+                  <thead>
+                    <tr>
+                      <th>Applicant</th>
+                      <th>Job</th>
+                      <th>Interviewer</th>
+                      <th>Round</th>
+                      <th>Scheduled At</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {dashboard.upcoming_interviews.map((interview) => (
+                      <tr key={interview.id}>
+                        <td>{interview.applicant_name}</td>
+                        <td>{interview.job_title}</td>
+                        <td>{interview.interviewer_name}</td>
+                        <td>{interview.interview_round}</td>
+                        <td>{formatDate(interview.scheduled_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </>
+      )}
+    </div>
   );
 }
 

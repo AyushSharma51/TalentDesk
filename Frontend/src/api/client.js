@@ -393,3 +393,229 @@ export async function deleteJob(jobId) {
   return true;
 
 }
+
+
+
+/* ==============================
+   APPLICANT MANAGEMENT API
+============================== */
+
+// Get applicants with optional filters and pagination
+export async function getApplicants({
+  companyId = null,
+  jobId = null,
+  status = null,
+  skip = 0,
+  limit = 50,
+} = {}) {
+  const params = new URLSearchParams();
+
+  if (companyId !== null) {
+    params.set("company_id", String(companyId));
+  }
+
+  if (jobId !== null) {
+    params.set("job_id", String(jobId));
+  }
+
+  if (status !== null) {
+    params.set("status", status);
+  }
+
+  params.set("skip", String(skip));
+  params.set("limit", String(limit));
+
+  const response = await fetch(
+    `${API_BASE_URL}/applicants/?${params.toString()}`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to fetch applicants.");
+  }
+
+  return data;
+}
+
+
+// Get a single applicant
+export async function getApplicantById(applicantId) {
+  const response = await fetch(
+    `${API_BASE_URL}/applicants/${applicantId}`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to fetch applicant details.");
+  }
+
+  return data;
+}
+
+
+// Update applicant status
+export async function updateApplicantStatus(applicantId, newStatus) {
+  const response = await fetch(
+    `${API_BASE_URL}/applicants/${applicantId}/status`,
+    {
+      method: "PATCH",
+      headers: getAuthHeaders({
+        "Content-Type": "application/json",
+      }),
+      body: JSON.stringify({ status: newStatus }),
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to update applicant status.");
+  }
+
+  return data;
+}
+
+
+/* ==============================
+   INTERVIEW MANAGEMENT API
+============================== */
+
+// Get interviews with optional filters
+export async function getInterviews({
+  companyId = null,
+  applicantId = null,
+  status = null,
+} = {}) {
+  const params = new URLSearchParams();
+
+  if (companyId !== null) {
+    params.set("company_id", String(companyId));
+  }
+
+  if (applicantId !== null) {
+    params.set("applicant_id", String(applicantId));
+  }
+
+  if (status !== null) {
+    params.set("interview_status", status);
+  }
+
+  const query = params.toString();
+
+  const response = await fetch(
+    `${API_BASE_URL}/interviews/${query ? `?${query}` : ""}`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to fetch interviews.");
+  }
+
+  return data;
+}
+
+
+// Get a single interview
+export async function getInterviewById(interviewId) {
+  const response = await fetch(
+    `${API_BASE_URL}/interviews/${interviewId}`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to fetch interview details.");
+  }
+
+  return data;
+}
+
+
+// Schedule an interview
+export async function createInterview(interviewData) {
+  const response = await fetch(
+    `${API_BASE_URL}/interviews/`,
+    {
+      method: "POST",
+      headers: getAuthHeaders({
+        "Content-Type": "application/json",
+      }),
+      body: JSON.stringify(interviewData),
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to schedule interview.");
+  }
+
+  return data;
+}
+
+
+// Update interview details or feedback
+export async function updateInterview(interviewId, interviewData) {
+  const response = await fetch(
+    `${API_BASE_URL}/interviews/${interviewId}`,
+    {
+      method: "PATCH",
+      headers: getAuthHeaders({
+        "Content-Type": "application/json",
+      }),
+      body: JSON.stringify(interviewData),
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to update interview.");
+  }
+
+  return data;
+}
+
+export async function getDashboard(companyId = null) {
+  const params = new URLSearchParams();
+
+  if (companyId !== null) {
+    params.append("company_id", companyId);
+  }
+
+  const query = params.toString();
+
+  const response = await fetch(
+    `${API_BASE_URL}/dashboard/${query ? `?${query}` : ""}`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to load dashboard");
+  }
+
+  return response.json();
+}

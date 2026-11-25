@@ -1,13 +1,40 @@
-Create the Applicant database model.
+Phase 2 TalentDesk development roadmap
 
-Create Alembic migration.
+1. Applicants Management
+   - Display applicants by company and job.
+   - View candidate profiles.
+   - Preview/download resumes.
+   - Update application status.
 
-Configure Supabase Storage and private bucket.
+2. Public Careers APIs
+   - Public endpoint to fetch published jobs.
+   - Application submission without login.
+   - PDF resume upload to Supabase Storage.
+   - Save applicant details in PostgreSQL.
 
-Build resume upload API.
+3. Sofsure Careers website
+   Separate public-facing website connected to TalentDesk.
 
-Build applicant submission API.
+4. NBMC Careers website
+   Separate public-facing website using the same backend.
 
-Build HR preview/download APIs.
+5. Interviews Management
+   - Schedule interviews.
+   - Assign interviewers.
+   - Record feedback and ratings.
+   - Track interview rounds.
 
-Integrate everything into the React Applicants page.
+6. Dashboard improvements
+   - Applicant statistics.
+   - Job performance.
+   - Hiring pipeline.
+   - Company-specific analytics.
+
+7. Production deployment
+   - Deploy backend and frontends.
+   - Configure domains and HTTPS.
+   - Secure file uploads.
+   - Configure live dashboard updates.
+
+   HIDE SUPER ADMIN IN USER DETAILS
+   IN JOB SECTION SHOW COMPANY NAME

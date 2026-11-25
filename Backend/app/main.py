@@ -7,6 +7,10 @@ from app.routes.users import router as users_router
 from app.routes.auth import router as auth_router
 from app.routes.resumes import router as resumes_router
 from app.routes.jobs import router as jobs_router
+from app.routes.applicants import router as applicants_router
+from app.routes.interviews import router as interviews_router
+from app.routes.dashboard import router as dashboard_router
+
 
 app = FastAPI(
     title="NBMC & Sofsure HR System",
@@ -29,6 +33,9 @@ app.include_router(
 app.include_router(auth_router)
 app.include_router(resumes_router)
 app.include_router(jobs_router)
+app.include_router(applicants_router)
+app.include_router(interviews_router)
+app.include_router(dashboard_router)
 
 #-------------------------------------------------------------------------------------
 

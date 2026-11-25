@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Sun, Moon, CalendarDays } from "lucide-react";
 
-function Topbar({ onLogout, currentUser, theme, onToggleTheme }) {
+function Topbar({ onLogout, currentUser, theme, onToggleTheme, activePage }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // User information
@@ -52,9 +52,11 @@ function Topbar({ onLogout, currentUser, theme, onToggleTheme }) {
 
   return (
     <header className="topbar">
-      {/* Breadcrumb */}
+      {/* Dynamic Breadcrumb */}
       <div className="breadcrumb">
-        Workspace <span>/</span> <strong>Dashboard</strong>
+        <span>Workspace</span>
+        <span className="breadcrumb-separator">/</span>
+        <strong>{activePage || "Dashboard"}</strong>
       </div>
 
       {/* Today's date */}

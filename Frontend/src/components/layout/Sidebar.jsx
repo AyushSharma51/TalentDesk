@@ -1,3 +1,4 @@
+
 import {
   LayoutDashboard,
   Building2,
@@ -19,6 +20,16 @@ const navigationItems = [
   { label: "Users", icon: Users },
 ];
 
+// Pages currently available in TalentDesk.
+const availablePages = [
+  "Dashboard",
+  "Companies",
+  "Jobs",
+  "Applicants",
+  "Interviews",
+  "Users",
+];
+
 function Sidebar({ activePage, setActivePage }) {
   return (
     <aside className="sidebar">
@@ -38,15 +49,8 @@ function Sidebar({ activePage, setActivePage }) {
       <nav className="navigation" aria-label="Main navigation">
         {navigationItems.map((item) => {
           const isActive = activePage === item.label;
+          const isAvailable = availablePages.includes(item.label);
 
-          // Only these pages are currently implemented.
-          const isAvailable =
-            item.label === "Dashboard" ||
-            item.label === "Companies" ||
-            item.label === "Jobs" ||
-            item.label === "Users";
-            
-          // Use the Lucide icon associated with this item.
           const Icon = item.icon;
 
           return (
@@ -54,6 +58,7 @@ function Sidebar({ activePage, setActivePage }) {
               type="button"
               className={`nav-item ${isActive ? "active" : ""}`}
               key={item.label}
+              disabled={!isAvailable}
               onClick={() => {
                 if (isAvailable) {
                   setActivePage(item.label);
@@ -78,14 +83,11 @@ function Sidebar({ activePage, setActivePage }) {
 
       {/* Bottom section: settings and workspace information */}
       <div className="sidebar-bottom">
-        {/* Settings navigation placeholder */}
         <button
           type="button"
           className="nav-item settings-item"
+          disabled
           title="Settings page is not available yet"
-          onClick={() => {
-            // Connect the Settings page here when it is implemented.
-          }}
         >
           <span className="nav-icon" aria-hidden="true">
             <Settings size={20} strokeWidth={1.8} />

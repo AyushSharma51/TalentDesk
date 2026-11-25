@@ -58,7 +58,9 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
-
+    interviews: Mapped[list["Interview"]] = relationship(
+    back_populates="interviewer",
+)
 
 class UserCompany(Base):
     __tablename__ = "user_companies"
@@ -163,3 +165,88 @@ class Applicant(Base):
     )
 
     job: Mapped["Job"] = relationship(back_populates="applicants")
+    interviews: Mapped[list["Interview"]] = relationship(
+    back_populates="applicant",
+    cascade="all, delete-orphan",)
+
+
+
+class Interview(Base):
+    __tablename__ = "interviews"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+
+    applicant_id: Mapped[int] = mapped_column(
+        ForeignKey("applicants.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    interviewer_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+
+    # Interview scheduling details
+    interview_round: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+    )
+
+    scheduled_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    duration_minutes: Mapped[int] = mapped_column(
+        default=30,
+        nullable=False,
+    )
+
+    interview_type: Mapped[str] = mapped_column(
+        String(30),
+        default="online",
+        nullable=False,
+    )
+
+    meeting_link: Mapped[str | None] = mapped_column(String(500))
+
+    # Instructions or context added while scheduling
+    remarks: Mapped[str | None] = mapped_column(Text)
+
+    # Interview status: scheduled, completed, cancelled
+    status: Mapped[str] = mapped_column(
+        String(30),
+        default="scheduled",
+        nullable=False,
+    )
+
+    # Interview evaluation
+    rating: Mapped[int | None] = mapped_column()
+
+    technical_rating: Mapped[int | None] = mapped_column()
+    communication_rating: Mapped[int | None] = mapped_column()
+    problem_solving_rating: Mapped[int | None] = mapped_column()
+
+    strengths: Mapped[str | None] = mapped_column(Text)
+    weaknesses: Mapped[str | None] = mapped_column()
+
+    feedback: Mapped[str | None] = mapped_column(Text)
+
+    # Interviewer's recommendation, not the applicant's final status
+    recommendation: Mapped[str | None] = mapped_column(String(30))
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    applicant: Mapped["Applicant"] = relationship(
+        back_populates="interviews",
+    )
+
+    interviewer: Mapped["User"] = relationship(
+        back_populates="interviews",
+    )

@@ -4,41 +4,38 @@ import "./App.css";
 
 import Sidebar from "./components/layout/Sidebar";
 import Topbar from "./components/layout/Topbar";
+
 import Dashboard from "./pages/Dashboard";
 import Companies from "./pages/Companies";
 import UsersPage from "./pages/Users";
 import Login from "./pages/Login";
 import Jobs from "./pages/Jobs";
+import Applicants from "./pages/Applicants";
+import ApplicantDetails from "./pages/ApplicantDetails";
+import Interviews from "./pages/Interviews";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
 function App() {
-
   const [activePage, setActivePage] = useState("Dashboard");
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Load the previously selected theme.
+  const [selectedApplicantId, setSelectedApplicantId] = useState(null);
+
   const [theme, setTheme] = useState(
     () => localStorage.getItem("theme") || "light"
   );
-  useEffect(() => {
-    if (currentUser) {
-      console.log(
-        "CURRENT USER:",
-        JSON.stringify(currentUser, null, 2)
-      );
-    }
-  }, [currentUser]);
-  // Apply the theme to the entire application.
+
+  // Apply the selected theme.
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  // Verify the saved login token when the app starts.
+  // Verify the user's existing authentication session.
   useEffect(() => {
     async function verifyAuthentication() {
       const token = localStorage.getItem("access_token");
@@ -64,7 +61,9 @@ function App() {
 
         setCurrentUser(user);
         setIsAuthenticated(true);
-      } catch {
+      } catch (error) {
+        console.error("Authentication verification failed:", error);
+
         localStorage.removeItem("access_token");
         setCurrentUser(null);
         setIsAuthenticated(false);
@@ -76,10 +75,10 @@ function App() {
     verifyAuthentication();
   }, []);
 
-  // Called after a successful login.
-  async function handleLoginSuccess(user) {
-    setCurrentUser(user);
+  // Refresh the user profile after a successful login.
+  async function handleLoginSuccess() {
     setActivePage("Dashboard");
+    setSelectedApplicantId(null);
 
     const token = localStorage.getItem("access_token");
 
@@ -104,7 +103,6 @@ function App() {
 
       setCurrentUser(freshUser);
       setIsAuthenticated(true);
-
     } catch (error) {
       console.error("Failed to refresh user profile:", error);
 
@@ -114,13 +112,25 @@ function App() {
     }
   }
 
-
   // Log out the current user.
   function handleLogout() {
     localStorage.removeItem("access_token");
+
     setCurrentUser(null);
     setIsAuthenticated(false);
     setActivePage("Dashboard");
+    setSelectedApplicantId(null);
+  }
+
+  // Handle sidebar navigation.
+  function handlePageChange(page) {
+    setActivePage(page);
+    setSelectedApplicantId(null);
+  }
+
+  // Return to the applicants listing.
+  function handleBackToApplicants() {
+    setSelectedApplicantId(null);
   }
 
   // Toggle between light and dark themes.
@@ -130,7 +140,7 @@ function App() {
     );
   }
 
-  // Show a loading message while verifying the session.
+  // Show authentication loading screen.
   if (isCheckingAuth) {
     return (
       <div className="auth-loading">
@@ -139,17 +149,16 @@ function App() {
     );
   }
 
-  // Show login when the user is not authenticated.
+  // Show login screen when unauthenticated.
   if (!isAuthenticated) {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // Render the authenticated application.
   return (
     <div className="app-layout">
       <Sidebar
         activePage={activePage}
-        setActivePage={setActivePage}
+        setActivePage={handlePageChange}
       />
 
       <div className="main-area">
@@ -158,18 +167,47 @@ function App() {
           currentUser={currentUser}
           theme={theme}
           onToggleTheme={handleToggleTheme}
+          activePage={activePage}
         />
 
-        {activePage === "Dashboard" && <Dashboard />}
+        {/* Dashboard */}
+        {activePage === "Dashboard" && (
+          <Dashboard currentUser={currentUser} />
+        )}
 
-        {activePage === "Companies" && <Companies />}
+        {/* Companies */}
+        {activePage === "Companies" && (
+          <Companies />
+        )}
 
+        {/* Users */}
         {activePage === "Users" && (
           <UsersPage currentUser={currentUser} />
         )}
 
+        {/* Jobs */}
         {activePage === "Jobs" && (
           <Jobs currentUser={currentUser} />
+        )}
+
+        {/* Applicants */}
+        {activePage === "Applicants" && (
+          selectedApplicantId ? (
+            <ApplicantDetails
+              applicantId={selectedApplicantId}
+              onBack={handleBackToApplicants}
+            />
+          ) : (
+            <Applicants
+              currentUser={currentUser}
+              onViewApplicant={setSelectedApplicantId}
+            />
+          )
+        )}
+
+        {/* Interviews */}
+        {activePage === "Interviews" && (
+          <Interviews currentUser={currentUser} />
         )}
       </div>
     </div>
