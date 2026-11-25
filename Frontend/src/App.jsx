@@ -163,10 +163,7 @@ function App() {
 
       <div className="main-area">
 
-        {/* Temporary debugging text */}
-        <p style={{ color: "red", padding: "10px" }}>
-          Current page: {activePage}
-        </p>
+
 
         <Topbar
           onLogout={handleLogout}

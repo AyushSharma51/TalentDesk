@@ -3625,3 +3625,143 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
     grid-template-columns: 1fr;
   }
 }
+
+
+
+/* ==============================
+   Dashboard - Recruitment Analytics
+============================== */
+
+.dashboard-analytics-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 28px 0 18px;
+}
+
+.dashboard-analytics-heading h2 {
+  margin: 0 0 6px;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.dashboard-analytics-heading p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.dashboard-date-filter {
+  min-width: 145px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--card-background);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.dashboard-heading-icon {
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: -4px;
+}
+
+/* Recruitment funnel */
+
+.dashboard-funnel-card {
+  margin-bottom: 22px;
+}
+
+.dashboard-funnel {
+  display: flex;
+  flex-direction: column;
+  gap: 19px;
+}
+
+.dashboard-funnel-stage {
+  min-width: 0;
+}
+
+.dashboard-funnel-info,
+.dashboard-funnel-rejected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.dashboard-funnel-info > span,
+.dashboard-funnel-rejected > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.dashboard-funnel-info strong,
+.dashboard-funnel-rejected strong {
+  font-size: 13px;
+}
+
+.dashboard-funnel-track {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--hover-background);
+}
+
+.dashboard-funnel-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.3s ease;
+}
+
+.dashboard-funnel-rejected {
+  padding-top: 16px;
+  margin-top: 2px;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Pending evaluations */
+
+.dashboard-missing-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 420px;
+  white-space: normal;
+}
+
+.dashboard-missing-tag {
+  display: inline-block;
+  padding: 5px 8px;
+  border: 1px solid #fed7aa;
+  border-radius: 5px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Responsive analytics */
+
+@media (max-width: 600px) {
+  .dashboard-analytics-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboard-date-filter {
+    width: 100%;
+  }
+
+  .dashboard-missing-fields {
+    min-width: 180px;
+  }
+}
